@@ -1,0 +1,60 @@
+{
+  "project": {
+    "name": "Design Scout Agent",
+    "description": "AI-powered design trend collection and proposal system"
+  },
+  "agents": {
+    "design-scout": {
+      "description": "Use this agent to collect design inspiration, analyze UI trends, and generate design proposals. Specializes in gathering references from Dribbble, Awwwards, Mobbin and other design platforms.",
+      "tools": ["WebFetch", "WebSearch", "Read", "Write", "Bash"],
+      "examples": [
+        {
+          "context": "User needs design inspiration for a new project",
+          "user": "I need design inspiration for a fintech dashboard",
+          "action": "Launch design-scout agent to collect and analyze fintech dashboard designs"
+        },
+        {
+          "context": "User wants to understand current design trends",
+          "user": "What are the current UI design trends?",
+          "action": "Launch design-scout agent to research and summarize trending design styles"
+        }
+      ]
+    },
+    "moodboard-creator": {
+      "description": "Use this agent to create visual moodboards from collected design references. Generates HTML moodboards with color palettes, typography recommendations, and style guides.",
+      "tools": ["Read", "Write", "WebFetch"],
+      "examples": [
+        {
+          "context": "Creating visual reference for a project",
+          "user": "Create a moodboard for my e-commerce app",
+          "action": "Launch moodboard-creator agent to generate a visual moodboard"
+        }
+      ]
+    },
+    "design-system-generator": {
+      "description": "Use this agent to generate design system code (CSS, Tailwind) based on analyzed design trends. Creates reusable code snippets for colors, typography, and components.",
+      "tools": ["Read", "Write"],
+      "examples": [
+        {
+          "context": "Implementing analyzed design trends",
+          "user": "Generate CSS for the proposed color palette",
+          "action": "Launch design-system-generator to create implementation code"
+        }
+      ]
+    }
+  },
+  "commands": {
+    "design-scout": {
+      "file": ".claude/commands/design-scout.md",
+      "description": "Scout for design inspiration from multiple sources"
+    },
+    "design-trends": {
+      "file": ".claude/commands/design-trends.md",
+      "description": "Research and summarize current design trends"
+    },
+    "moodboard": {
+      "file": ".claude/commands/moodboard.md",
+      "description": "Generate a visual moodboard for a project"
+    }
+  }
+}
