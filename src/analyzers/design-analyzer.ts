@@ -5,8 +5,15 @@ import type {
   DesignStyle,
   ColorPalette,
 } from '../types/index.js';
+import { ColorExtractor, type ColorExtractionResult } from './color-extractor.js';
 
 export class DesignAnalyzer {
+  private colorExtractor: ColorExtractor;
+
+  constructor() {
+    this.colorExtractor = new ColorExtractor();
+  }
+
   async analyzeDesigns(items: DesignItem[]): Promise<AnalysisResult> {
     const styleFrequency = this.calculateStyleFrequency(items);
     const dominantStyles = this.getDominantStyles(styleFrequency);
@@ -74,6 +81,60 @@ export class DesignAnalyzer {
       error: '#EF4444',
       additionalColors: sortedColors.slice(3, 8),
     };
+  }
+
+  /**
+   * Extract colors from design item images
+   */
+  async extractColorsFromImages(items: DesignItem[]): Promise<ColorExtractionResult> {
+    const imageUrls = items
+      .flatMap(item => item.imageUrls)
+      .filter(url => url && url.startsWith('http'))
+      .slice(0, 10); // Limit to first 10 images
+
+    if (imageUrls.length === 0) {
+      return this.colorExtractor.extractFromMultiple([]);
+    }
+
+    return this.colorExtractor.extractFromMultiple(imageUrls);
+  }
+
+  /**
+   * Generate color palette from images
+   */
+  async generateColorPaletteFromImages(items: DesignItem[]): Promise<ColorPalette> {
+    const result = await this.extractColorsFromImages(items);
+    return result.palette;
+  }
+
+  /**
+   * Enhanced analysis with image color extraction
+   */
+  async analyzeDesignsWithImages(items: DesignItem[]): Promise<AnalysisResult & { imageColorAnalysis?: ColorExtractionResult }> {
+    const baseAnalysis = await this.analyzeDesigns(items);
+
+    // Try to extract colors from images
+    try {
+      const imageColorAnalysis = await this.extractColorsFromImages(items);
+
+      // Enhance color analysis with image-extracted colors
+      if (imageColorAnalysis.dominantColors.length > 0) {
+        baseAnalysis.colorAnalysis.dominantColors = [
+          ...imageColorAnalysis.dominantColors.map(c => c.hex),
+          ...baseAnalysis.colorAnalysis.dominantColors,
+        ].slice(0, 10);
+
+        baseAnalysis.colorAnalysis.colorHarmony = imageColorAnalysis.colorHarmony;
+      }
+
+      return {
+        ...baseAnalysis,
+        imageColorAnalysis,
+      };
+    } catch (error) {
+      console.error('Error extracting colors from images:', error);
+      return baseAnalysis;
+    }
   }
 
   private calculateStyleFrequency(items: DesignItem[]): Record<DesignStyle, number> {
