@@ -10,6 +10,7 @@ export { DribbbleCollector } from './dribbble-collector.js';
 export { AwwwardsCollector } from './awwwards-collector.js';
 export { MobbinCollector } from './mobbin-collector.js';
 export { WebSearchCollector, createSampleDesignItems } from './web-search-collector.js';
+export type { SearchQuery, SearchResult } from './web-search-collector.js';
 
 export class CollectorFactory {
   private static collectors: Map<DesignSource, BaseCollector> = new Map();
