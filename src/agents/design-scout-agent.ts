@@ -11,6 +11,7 @@ import { CollectorFactory } from '../collectors/index.js';
 import { DesignAnalyzer } from '../analyzers/design-analyzer.js';
 import { ProposalGenerator } from '../generators/proposal-generator.js';
 import { OutputGenerator } from '../generators/output-generator.js';
+import { DesignStore, type StoredDesign, type SearchOptions } from '../storage/index.js';
 
 export interface ScoutOptions {
   sources?: DesignSource[];
@@ -19,6 +20,7 @@ export interface ScoutOptions {
   searchQuery?: string;
   limit?: number;
   sortBy?: 'popular' | 'recent' | 'trending';
+  saveToStore?: boolean;
 }
 
 export interface ProposalOptions {
@@ -32,10 +34,23 @@ export class DesignScoutAgent {
   private analyzer: DesignAnalyzer;
   private proposalGenerator: ProposalGenerator;
   private collectedItems: DesignItem[] = [];
+  private store: DesignStore;
+  private storeInitialized = false;
 
-  constructor() {
+  constructor(dataDir?: string) {
     this.analyzer = new DesignAnalyzer();
     this.proposalGenerator = new ProposalGenerator();
+    this.store = new DesignStore(dataDir || './data');
+  }
+
+  /**
+   * Initialize the store (call once before using storage features)
+   */
+  async initStore(): Promise<void> {
+    if (!this.storeInitialized) {
+      await this.store.init();
+      this.storeInitialized = true;
+    }
   }
 
   /**
@@ -60,6 +75,23 @@ export class DesignScoutAgent {
     }
 
     console.log(`Collected ${this.collectedItems.length} design items`);
+
+    // Optionally save to store
+    if (options.saveToStore) {
+      await this.initStore();
+      await this.store.saveDesigns(this.collectedItems);
+
+      // Add to history
+      await this.store.addHistory({
+        query: options.searchQuery,
+        categories: options.categories || [],
+        sources: config.sources,
+        itemCount: this.collectedItems.length,
+      });
+
+      console.log(`Saved ${this.collectedItems.length} items to store`);
+    }
+
     return this.collectedItems;
   }
 
@@ -175,6 +207,111 @@ export class DesignScoutAgent {
    */
   clearCollectedItems(): void {
     this.collectedItems = [];
+  }
+
+  // ==================== Storage Operations ====================
+
+  /**
+   * Search stored designs
+   */
+  async searchStored(options: SearchOptions = {}): Promise<StoredDesign[]> {
+    await this.initStore();
+    return this.store.searchDesigns(options);
+  }
+
+  /**
+   * Get all stored designs
+   */
+  async getAllStored(): Promise<StoredDesign[]> {
+    await this.initStore();
+    return this.store.getAllDesigns();
+  }
+
+  /**
+   * Toggle favorite status
+   */
+  async toggleFavorite(designId: string): Promise<boolean> {
+    await this.initStore();
+    return this.store.toggleFavorite(designId);
+  }
+
+  /**
+   * Get favorites
+   */
+  async getFavorites(): Promise<StoredDesign[]> {
+    await this.initStore();
+    return this.store.getFavorites();
+  }
+
+  /**
+   * Create a collection
+   */
+  async createCollection(name: string, description?: string): Promise<import('../storage/index.js').Collection> {
+    await this.initStore();
+    return this.store.createCollection(name, description);
+  }
+
+  /**
+   * Add design to collection
+   */
+  async addToCollection(collectionId: string, designId: string): Promise<boolean> {
+    await this.initStore();
+    return this.store.addToCollection(collectionId, designId);
+  }
+
+  /**
+   * Get all collections
+   */
+  async getCollections(): Promise<import('../storage/index.js').Collection[]> {
+    await this.initStore();
+    return this.store.getAllCollections();
+  }
+
+  /**
+   * Get collection designs
+   */
+  async getCollectionDesigns(collectionId: string): Promise<StoredDesign[]> {
+    await this.initStore();
+    return this.store.getCollectionDesigns(collectionId);
+  }
+
+  /**
+   * Get collection history
+   */
+  async getHistory(limit?: number): Promise<import('../storage/index.js').CollectionHistory[]> {
+    await this.initStore();
+    return this.store.getHistory(limit);
+  }
+
+  /**
+   * Get store statistics
+   */
+  async getStats(): Promise<{
+    totalDesigns: number;
+    totalFavorites: number;
+    totalCollections: number;
+    designsBySource: Record<string, number>;
+    designsByCategory: Record<string, number>;
+    designsByStyle: Record<string, number>;
+  }> {
+    await this.initStore();
+    return this.store.getStats();
+  }
+
+  /**
+   * Cache trends
+   */
+  async cacheTrends(trends: DesignTrend[]): Promise<void> {
+    await this.initStore();
+    await this.store.cacheTrends(trends);
+  }
+
+  /**
+   * Get cached trends
+   */
+  async getCachedTrends(): Promise<DesignTrend[] | null> {
+    await this.initStore();
+    return this.store.getCachedTrends();
   }
 
   /**
