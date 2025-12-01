@@ -1,0 +1,98 @@
+name: Scheduled Design Collection
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      category:
+        description: 'Design category to collect'
+        required: false
+        default: 'web'
+        type: choice
+        options:
+          - web
+          - mobile-ios
+          - mobile-android
+          - dashboard
+          - landing-page
+          - e-commerce
+          - saas
+
+  # Scheduled trigger - runs every day at 9:00 AM JST (0:00 UTC)
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  collect-designs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Create data directory
+        run: mkdir -p data output
+
+      - name: Run design collection
+        run: |
+          node dist/cli.js scout \
+            --sources dribbble,behance,awwwards,mobbin \
+            --category ${{ github.event.inputs.category || 'web' }} \
+            --limit 50 \
+            --save
+        env:
+          NODE_ENV: production
+
+      - name: Generate outputs
+        run: |
+          node dist/cli.js propose \
+            --category ${{ github.event.inputs.category || 'web' }} \
+            --platform web \
+            --output ./output
+        continue-on-error: true
+
+      - name: Upload collected data
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-collection-${{ github.run_number }}
+          path: |
+            data/
+            output/
+          retention-days: 30
+
+      - name: Commit data updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/ output/ || true
+          git diff --staged --quiet || git commit -m "chore: scheduled design collection $(date +'%Y-%m-%d')"
+          git push || true
+        continue-on-error: true
+
+  notify:
+    needs: collect-designs
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Collection Summary
+        run: |
+          echo "## Design Collection Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Date:** $(date +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Category:** ${{ github.event.inputs.category || 'web' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ needs.collect-designs.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Artifacts are available for 30 days." >> $GITHUB_STEP_SUMMARY

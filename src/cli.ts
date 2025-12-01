@@ -14,16 +14,17 @@ program
 program
   .command('scout')
   .description('Scout for design inspiration from multiple sources')
-  .option('-s, --sources <sources>', 'Comma-separated sources (dribbble,awwwards,mobbin)', 'dribbble,awwwards,mobbin')
-  .option('-c, --categories <categories>', 'Comma-separated categories (web,mobile-ios,dashboard,etc)')
+  .option('-s, --sources <sources>', 'Comma-separated sources (dribbble,awwwards,mobbin,behance,figma,pinterest)', 'dribbble,awwwards,mobbin')
+  .option('-c, --category <category>', 'Target category (web,mobile-ios,dashboard,etc)')
   .option('-q, --query <query>', 'Search query')
   .option('-l, --limit <number>', 'Maximum items to collect', '30')
   .option('--sort <type>', 'Sort by: popular, recent, trending', 'popular')
+  .option('--save', 'Save collected designs to local store')
   .action(async (options) => {
     const agent = getDesignScoutAgent();
 
     const sources = options.sources.split(',') as DesignSource[];
-    const categories = options.categories?.split(',') as DesignCategory[] | undefined;
+    const categories = options.category ? [options.category] as DesignCategory[] : undefined;
 
     try {
       const items = await agent.scout({
@@ -32,6 +33,7 @@ program
         searchQuery: options.query,
         limit: parseInt(options.limit),
         sortBy: options.sort,
+        saveToStore: options.save,
       });
 
       console.log('\n' + agent.getSummary());
@@ -41,6 +43,10 @@ program
         console.log(`   Styles: ${item.styles.join(', ')}`);
         console.log(`   URL: ${item.sourceUrl}`);
       });
+
+      if (options.save) {
+        console.log('\n✓ Designs saved to local store');
+      }
     } catch (error) {
       console.error('Error scouting:', error);
       process.exit(1);
@@ -156,6 +162,78 @@ program
       }
     } catch (error) {
       console.error('Error running pipeline:', error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('stats')
+  .description('Show statistics from the design store')
+  .action(async () => {
+    const agent = getDesignScoutAgent();
+
+    try {
+      const stats = await agent.getStats();
+
+      console.log('\n=== Design Store Statistics ===\n');
+      console.log(`Total Designs: ${stats.totalDesigns}`);
+      console.log(`Favorites: ${stats.totalFavorites}`);
+      console.log(`Collections: ${stats.totalCollections}`);
+
+      if (Object.keys(stats.designsBySource).length > 0) {
+        console.log('\nBy Source:');
+        Object.entries(stats.designsBySource).forEach(([source, count]) => {
+          console.log(`  ${source}: ${count}`);
+        });
+      }
+
+      if (Object.keys(stats.designsByCategory).length > 0) {
+        console.log('\nBy Category:');
+        Object.entries(stats.designsByCategory).forEach(([cat, count]) => {
+          console.log(`  ${cat}: ${count}`);
+        });
+      }
+
+      if (Object.keys(stats.designsByStyle).length > 0) {
+        console.log('\nTop Styles:');
+        Object.entries(stats.designsByStyle)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .forEach(([style, count]) => {
+            console.log(`  ${style}: ${count}`);
+          });
+      }
+    } catch (error) {
+      console.error('Error getting stats:', error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('history')
+  .description('Show collection history')
+  .option('-l, --limit <number>', 'Number of entries to show', '10')
+  .action(async (options) => {
+    const agent = getDesignScoutAgent();
+
+    try {
+      const history = await agent.getHistory(parseInt(options.limit));
+
+      console.log('\n=== Collection History ===\n');
+      if (history.length === 0) {
+        console.log('No history yet. Run `design-scout scout --save` to start collecting.');
+      } else {
+        history.forEach((entry, i) => {
+          const date = new Date(entry.collectedAt).toLocaleString();
+          console.log(`${i + 1}. ${date}`);
+          console.log(`   Query: ${entry.query || '(no query)'}`);
+          console.log(`   Sources: ${entry.sources.join(', ')}`);
+          console.log(`   Items: ${entry.itemCount}`);
+          console.log('');
+        });
+      }
+    } catch (error) {
+      console.error('Error getting history:', error);
       process.exit(1);
     }
   });
