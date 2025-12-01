@@ -3,12 +3,20 @@ import { BaseCollector } from './base-collector.js';
 import { DribbbleCollector } from './dribbble-collector.js';
 import { AwwwardsCollector } from './awwwards-collector.js';
 import { MobbinCollector } from './mobbin-collector.js';
+import { BehanceCollector } from './behance-collector.js';
+import { FigmaCollector } from './figma-collector.js';
+import { PinterestCollector } from './pinterest-collector.js';
+import { ProductHuntCollector } from './producthunt-collector.js';
 import { WebSearchCollector, createSampleDesignItems } from './web-search-collector.js';
 
 export { BaseCollector } from './base-collector.js';
 export { DribbbleCollector } from './dribbble-collector.js';
 export { AwwwardsCollector } from './awwwards-collector.js';
 export { MobbinCollector } from './mobbin-collector.js';
+export { BehanceCollector } from './behance-collector.js';
+export { FigmaCollector } from './figma-collector.js';
+export { PinterestCollector } from './pinterest-collector.js';
+export { ProductHuntCollector } from './producthunt-collector.js';
 export { WebSearchCollector, createSampleDesignItems } from './web-search-collector.js';
 export type { SearchQuery, SearchResult } from './web-search-collector.js';
 
@@ -31,10 +39,18 @@ export class CollectorFactory {
       case 'mobbin':
         return new MobbinCollector();
       case 'behance':
+        return new BehanceCollector();
+      case 'figma':
+        return new FigmaCollector();
+      case 'pinterest':
+        return new PinterestCollector();
+      case 'producthunt':
+        return new ProductHuntCollector();
       case 'appstore':
       case 'playstore':
       case 'cssawards':
       case 'siteinspire':
+      case 'layers':
         // Placeholder - return Dribbble as fallback for now
         console.warn(`Collector for ${source} not yet implemented, using Dribbble as fallback`);
         return new DribbbleCollector();

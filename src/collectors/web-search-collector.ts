@@ -173,6 +173,10 @@ Collect at least ${config.limit || 20} design references.
       'cssawards': 'cssdesignawards.com',
       'siteinspire': 'siteinspire.com',
       'mobbin': 'mobbin.com',
+      'figma': 'figma.com/community',
+      'pinterest': 'pinterest.com',
+      'layers': 'layers.to',
+      'producthunt': 'producthunt.com',
     };
     return domains[source];
   }
@@ -231,6 +235,10 @@ Collect at least ${config.limit || 20} design references.
       ['play.google.com', 'playstore'],
       ['cssdesignawards', 'cssawards'],
       ['siteinspire', 'siteinspire'],
+      ['figma.com', 'figma'],
+      ['pinterest.com', 'pinterest'],
+      ['layers.to', 'layers'],
+      ['producthunt.com', 'producthunt'],
     ];
 
     for (const [domain, source] of sourceMap) {

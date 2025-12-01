@@ -9,6 +9,10 @@ export const DesignSourceSchema = z.enum([
   'cssawards',
   'siteinspire',
   'mobbin',
+  'figma',
+  'pinterest',
+  'layers',
+  'producthunt',
 ]);
 
 export type DesignSource = z.infer<typeof DesignSourceSchema>;
