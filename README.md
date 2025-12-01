@@ -6,9 +6,12 @@
 
 Design Scout Agentは以下の機能を提供します：
 
-- **デザイン収集** - Dribbble, Awwwards, Mobbin等から最新UIデザインを収集
+- **デザイン収集** - Dribbble, Awwwards, Mobbin, Behance, Figma, Pinterest等から最新UIデザインを収集
+- **カラー抽出** - 画像から自動でカラーパレットを抽出・分析
 - **トレンド分析** - スタイル、カラー、レイアウトの傾向を分析
-- **提案生成** - ムードボード、デザインレポート、コードスニペットを生成
+- **提案生成** - インタラクティブムードボード、デザインレポート、コードスニペットを生成
+- **データ永続化** - 収集したデザインをローカルに保存・検索
+- **定期実行** - GitHub Actionsで自動収集
 
 ---
 
@@ -20,13 +23,52 @@ npm install
 npm run build
 ```
 
+グローバルインストール:
+```bash
+npm link
+```
+
+---
+
+## 対応デザインソース
+
+| ソース | 説明 | 状態 |
+|--------|------|------|
+| Dribbble | デザインコミュニティ | ✅ |
+| Awwwards | 受賞Webサイト | ✅ |
+| Mobbin | モバイルUIパターン | ✅ |
+| Behance | Adobe系デザイナー作品 | ✅ |
+| Figma | Figma Community | ✅ |
+| Pinterest | ビジュアルインスピレーション | ✅ |
+| ProductHunt | 新プロダクトUI | ✅ |
+
 ---
 
 ## 使い方
 
-### 方法1: Claude Codeのスラッシュコマンド
+### 方法1: CLIコマンド
 
-最も簡単な方法は、Claude Code内でスラッシュコマンドを使用することです。
+```bash
+# デザイン収集（ストアに保存）
+design-scout scout --sources dribbble,behance --category web --save
+
+# トレンド分析
+design-scout analyze
+
+# 提案生成（インタラクティブムードボード付き）
+design-scout propose --category dashboard --platform web
+
+# フルパイプライン
+design-scout run --category landing-page --query "fintech"
+
+# 統計表示
+design-scout stats
+
+# 収集履歴
+design-scout history
+```
+
+### 方法2: Claude Codeのスラッシュコマンド
 
 ```
 # デザイン収集・提案
@@ -39,50 +81,28 @@ npm run build
 /moodboard e-commerce minimalist
 ```
 
-### 方法2: Claude Codeでの対話
-
-Claude Codeに直接依頼することもできます：
+### 方法3: Claude Codeでの対話
 
 ```
 「fintechダッシュボードのデザイン提案をして」
-
 「最新のモバイルアプリUIトレンドを調べて」
-
 「ECサイト用のムードボードを作成して」
 ```
 
-### 方法3: CLIコマンド
-
-ターミナルから直接実行：
-
-```bash
-# デザイン収集
-npm run scout -- --categories=landing-page --limit=30
-
-# トレンド分析
-npm run analyze
-
-# 提案生成
-npm run propose -- --category=dashboard --platform=web
-
-# フルパイプライン（収集→分析→提案）
-npm run run -- --category=landing-page --query="fintech"
-```
-
 ### 方法4: TypeScript/JavaScript API
-
-プログラムから使用：
 
 ```typescript
 import { DesignScoutAgent } from 'design-scout-agent';
 
 const agent = new DesignScoutAgent();
 
-// デザイン収集
+// デザイン収集（ストアに保存）
 await agent.scout({
+  sources: ['dribbble', 'behance', 'figma'],
   categories: ['landing-page', 'dashboard'],
   styles: ['minimalist', 'dark-mode'],
-  limit: 30
+  limit: 30,
+  saveToStore: true,
 });
 
 // トレンド分析
@@ -92,12 +112,100 @@ const { analysis, trends } = await agent.analyze();
 const { proposal, outputs } = await agent.propose({
   targetCategory: 'landing-page',
   targetPlatform: 'web',
-  generateOutputs: true
+  generateOutputs: true,
 });
 
-console.log('Moodboard:', outputs.moodboardPath);
-console.log('Report:', outputs.reportPath);
+// ストアから検索
+const results = await agent.searchStored({
+  query: 'dashboard',
+  styles: ['minimalist'],
+  favoritesOnly: false,
+});
+
+// 統計取得
+const stats = await agent.getStats();
 ```
+
+---
+
+## インタラクティブムードボード
+
+生成されるHTMLムードボードは以下の機能を持ちます：
+
+| 機能 | 説明 |
+|------|------|
+| ドラッグ&ドロップ | カードを自由に並び替え |
+| ダークモード | ワンクリックで切り替え |
+| 検索・フィルター | タイトル検索、ソース別フィルター |
+| お気に入り | ❤️でマーク、フィルター表示 |
+| コメント | 各カードにメモ追加 |
+| 画像ズーム | ダブルクリックで拡大 |
+| エクスポート | PNG/PDF出力 |
+| 共有 | URLコピー |
+| 状態保持 | LocalStorageで設定維持 |
+
+---
+
+## データ永続化
+
+収集したデザインはローカルに保存され、検索・管理できます。
+
+```bash
+# 保存先
+data/designs.json
+
+# 機能
+- デザイン保存・検索
+- お気に入り管理
+- コレクション作成
+- トレンドキャッシュ
+- 収集履歴
+```
+
+### ストレージAPI
+
+```typescript
+// お気に入り切り替え
+await agent.toggleFavorite(designId);
+
+// コレクション作成
+await agent.createCollection('My Collection', 'Description');
+
+// コレクションに追加
+await agent.addToCollection(collectionId, designId);
+
+// 統計取得
+const stats = await agent.getStats();
+// => { totalDesigns, totalFavorites, designsBySource, ... }
+```
+
+---
+
+## GitHub Actions定期実行
+
+毎日自動でデザインを収集できます。
+
+### 設定
+
+```yaml
+# .github/workflows/scheduled-collection.yml
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 毎日9:00 JST
+  workflow_dispatch:     # 手動実行も可能
+```
+
+### 手動実行
+
+1. GitHub → Actions → "Scheduled Design Collection"
+2. "Run workflow" をクリック
+3. カテゴリを選択して実行
+
+### 結果
+
+- `data/` に収集データ保存
+- `output/` にムードボード等生成
+- Artifactとして30日間保持
 
 ---
 
@@ -107,10 +215,10 @@ console.log('Report:', outputs.reportPath);
 `output/moodboards/moodboard-[category]-[timestamp].html`
 
 インタラクティブなビジュアルリファレンス集：
-- カラーパレット表示
+- カラーパレット（クリックでコピー）
 - 参照画像ギャラリー
 - トレンドカード
-- 採用すべき要素リスト
+- ドラッグ&ドロップ対応
 
 ### デザインレポート (Markdown)
 `output/reports/design-report-[category]-[timestamp].md`
@@ -120,16 +228,10 @@ console.log('Report:', outputs.reportPath);
 - タイポグラフィ推奨
 - レイアウトガイド
 - トレンド分析
-- 実装ノート
 
 ### コードスニペット (CSS/Tailwind)
 `output/snippets/snippets-[category]-[timestamp].css`
 `output/snippets/snippets-[category]-[timestamp].tailwind.js`
-
-すぐに使える実装コード：
-- CSS変数定義
-- Tailwind設定
-- コンポーネントスタイル
 
 ---
 
@@ -163,49 +265,10 @@ console.log('Report:', outputs.reportPath);
 | `gradient` | グラデーション、鮮やかな色彩 |
 | `3d` | 3D要素、没入型体験 |
 | `illustration` | カスタムイラスト、手描き風 |
-| `typography-focused` | タイポグラフィ重視、文字デザイン |
+| `typography-focused` | タイポグラフィ重視 |
 | `organic` | オーガニック、自然な曲線 |
 | `geometric` | 幾何学模様、シャープな形状 |
-
----
-
-## Claude Code統合
-
-### エージェント定義
-
-`.claude/settings.json`に以下のエージェントが定義されています：
-
-- **design-scout** - メインの収集・提案エージェント
-- **moodboard-creator** - ムードボード生成専用
-- **design-system-generator** - コード生成専用
-
-### 他エージェントとの連携
-
-```
-ui-designer → design-scout → frontend-developer
-     ↓              ↓               ↓
-   設計計画    デザイン参照     実装コード
-```
-
-### Task toolでの呼び出し
-
-```json
-{
-  "subagent_type": "design-scout",
-  "prompt": "fintechダッシュボードのデザイン提案を作成",
-  "description": "Fintech dashboard design proposal"
-}
-```
-
----
-
-## 設定ファイル
-
-| ファイル | 用途 |
-|---------|------|
-| `.claude/settings.json` | Claude Code統合設定 |
-| `.claude/commands/*.md` | スラッシュコマンド定義 |
-| `skills/design-scout.md` | スキル詳細ドキュメント |
+| `brutalist` | ブルータリスト、大胆なデザイン |
 
 ---
 
@@ -244,6 +307,24 @@ module.exports = {
 
 ---
 
+## プロジェクト構成
+
+```
+design-scout-agent/
+├── src/
+│   ├── agents/          # メインエージェント
+│   ├── collectors/      # ソース別コレクター
+│   ├── analyzers/       # 分析・カラー抽出
+│   ├── generators/      # 出力生成
+│   ├── storage/         # データ永続化
+│   └── types/           # 型定義
+├── .github/workflows/   # GitHub Actions
+├── data/                # 収集データ保存
+└── output/              # 生成ファイル
+```
+
+---
+
 ## トラブルシューティング
 
 ### デザインが収集されない
@@ -254,11 +335,15 @@ Claude Codeの`WebSearch`/`WebFetch`ツールを使用した収集を推奨し�
 ### ビルドエラー
 
 ```bash
-# node_modulesを削除して再インストール
 rm -rf node_modules
 npm install
 npm run build
 ```
+
+### GitHub Actionsが動かない
+
+- リポジトリの Settings → Actions → General で有効化
+- `workflow_dispatch` で手動実行をテスト
 
 ---
 
@@ -270,4 +355,4 @@ MIT License
 
 ## 連絡先
 
-問題や提案がある場合は、Issueを作成してください。
+問題や提案がある場合は、[Issue](https://github.com/s-teraco/design-scout-agent/issues)を作成してください。
